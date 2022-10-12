@@ -1,0 +1,22 @@
+{
+    "address" : "",
+    "private_key" : "",
+    "bot_work": "True",
+    "bot_token" : "",
+    "id_chat/user" : -1001693719978,
+    "api_id": "-",
+    "api_hash": "-",
+    "trailing_stop_loss": 7,
+    "only_cmc" : "True", 
+    "only_cg" : "False",
+    "max_liq" : 300,
+    "min_liq" : "False",
+    "if_no_liq" : "False",
+    "pred_list_cmc" : "True",
+    "max_slip_s" : "False",
+    "max_slip_b" : "False",
+    "max_sum_slip" : 22,
+    "if_slip_bol_1" : "True",
+    "amount(bnb)" : 0.001,
+    "gas_price": 20
+}
