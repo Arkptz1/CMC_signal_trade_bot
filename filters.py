@@ -2,11 +2,17 @@ import variables
 import parse_cmc
 import save_load
 from loguru import logger
+
+
 def send_tg(txt):
     logger.warning(txt)
     if variables.bot_work:
         variables.bot.send_message(variables.id_chat, "❌" + txt + '❌')
+
+
 save_list, load_list, save_dict, read_dict = save_load.save_list, save_load.load_list, save_load.save_dict, save_load.read_dict
+
+
 def filters(msg):
     if ("NEW TOKEN FOUND" in msg[0].upper()):
         trade = parse_cmc.cicle_am(variables.sender_address)
@@ -27,16 +33,16 @@ def filters(msg):
                     send_tg(txt)
         for i in msg:
             if "Liquidity" in i:
-                    liq = float(i.split()[1].replace(',', ''))
-                    if variables.max_liq:
-                        if liq > variables.max_liq:
-                            trade = False
-                            txt = f'У токена {name} ликвидность больше максимальной -> пропускаем.'
-                            send_tg(txt)
-                        elif liq < variables.min_liq:
-                            trade = False
-                            txt = f'У токена {name} ликвидность меньше минимальной -> пропускаем.'
-                            send_tg(txt)
+                liq = float(i.split()[1].replace(',', ''))
+                if variables.max_liq:
+                    if liq > variables.max_liq:
+                        trade = False
+                        txt = f'У токена {name} ликвидность больше максимальной -> пропускаем.'
+                        send_tg(txt)
+                    elif liq < variables.min_liq:
+                        trade = False
+                        txt = f'У токена {name} ликвидность меньше минимальной -> пропускаем.'
+                        send_tg(txt)
             if ("Slippage" in i) and ("(buy)" in i):
                 slip_buy = int(i.split()[1].replace('%', ''))
             elif ("Slippage" in i) and ("(sell)" in i):

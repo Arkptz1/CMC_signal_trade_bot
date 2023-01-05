@@ -15,16 +15,25 @@ import requests
 import variables
 import time
 from requests.auth import HTTPBasicAuth
-GAS_LIMIT_FAILSAFE = Wei(2500000) 
+GAS_LIMIT_FAILSAFE = Wei(2500000)
 max_price_impact = 0.05
+
+
 class NetworkAddresses(NamedTuple):
-    wbnb: ChecksumAddress = Web3.toChecksumAddress("0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
-    busd: ChecksumAddress = Web3.toChecksumAddress("0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56")
-    usdt: ChecksumAddress = Web3.toChecksumAddress("0x55d398326f99059ff775485246999027b3197955")
-    factory_v1: ChecksumAddress = Web3.toChecksumAddress("0xBCfCcbde45cE874adCB698cC183deBcF17952812")
-    factory_v2: ChecksumAddress = Web3.toChecksumAddress("0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
-    router_v1: ChecksumAddress = Web3.toChecksumAddress("0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
-    router_v2: ChecksumAddress = Web3.toChecksumAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E")
+    wbnb: ChecksumAddress = Web3.toChecksumAddress(
+        "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c")
+    busd: ChecksumAddress = Web3.toChecksumAddress(
+        "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56")
+    usdt: ChecksumAddress = Web3.toChecksumAddress(
+        "0x55d398326f99059ff775485246999027b3197955")
+    factory_v1: ChecksumAddress = Web3.toChecksumAddress(
+        "0xBCfCcbde45cE874adCB698cC183deBcF17952812")
+    factory_v2: ChecksumAddress = Web3.toChecksumAddress(
+        "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73")
+    router_v1: ChecksumAddress = Web3.toChecksumAddress(
+        "0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F")
+    router_v2: ChecksumAddress = Web3.toChecksumAddress(
+        "0x10ED43C718714eb63d5aA57B78B54704E256024E")
 
 
 class NetworkContracts:
@@ -49,13 +58,17 @@ class NetworkContracts:
             with Path("abi").joinpath(filename).open("r") as f:
                 abi = f.read()
             setattr(self, contract, w3.eth.contract(address=address, abi=abi))
+
+
 class Net():
     def __init__(self, wallet) -> None:
         self.private_key = variables.private_key
         self.addr = NetworkAddresses()
-        self.supported_base_tokens = [self.addr.wbnb, self.addr.busd, self.addr.usdt]
+        self.supported_base_tokens = [
+            self.addr.wbnb, self.addr.busd, self.addr.usdt]
         rpc = "https://bsc-dataseed.binance.org:443"
-        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20, max_retries=1)
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=20, pool_maxsize=20, max_retries=1)
         session = requests.Session()
         session.mount("http://", adapter)
         session.mount("https://", adapter)
@@ -64,7 +77,8 @@ class Net():
             if None and None
             else None
         )
-        w3_provider = Web3.HTTPProvider(endpoint_uri=rpc, session=session, request_kwargs=auth)
+        w3_provider = Web3.HTTPProvider(
+            endpoint_uri=rpc, session=session, request_kwargs=auth)
         self.w3 = Web3(provider=w3_provider)
         self.lp_cache: Dict[Tuple[str, str], ChecksumAddress] = {}
         self.contracts = NetworkContracts(addr=self.addr, w3=self.w3)
@@ -76,32 +90,34 @@ class Net():
         self.approved: Set[str] = set()
         max_approval_hex = f"0x{64 * 'f'}"
         self.max_approval_int = int(max_approval_hex, 16)
-        #self.last_nonce = self.w3.eth.get_transaction_count(self.wallet)
+        # self.last_nonce = self.w3.eth.get_transaction_count(self.wallet)
         self.max_price_impact = max_price_impact
         self.price_in_usd = False
+
     def get_token_balance_value(
-            self, token_address: ChecksumAddress, balance: Optional[Decimal] = None, token_price: Optional[Decimal] = None
-        ) -> Decimal:
-            """Get the value of a token's position in BNB or USD.
+        self, token_address: ChecksumAddress, balance: Optional[Decimal] = None, token_price: Optional[Decimal] = None
+    ) -> Decimal:
+        """Get the value of a token's position in BNB or USD.
 
-            If the token price is given in BNB/token, the result is in BNB. Otherwise it's in USD.
+        If the token price is given in BNB/token, the result is in BNB. Otherwise it's in USD.
 
-            Args:
-                token_address (ChecksumAddress): the address of the token contract
-                balance (Optional[Decimal], optional): the wallet's balance for a given token if available. An additional
-                    request will be made if not available. Defaults to None.
-                token_price (Optional[Decimal], optional): the price of the token if available. An additional
-                    request will be made if not available. Defaults to None.
+        Args:
+            token_address (ChecksumAddress): the address of the token contract
+            balance (Optional[Decimal], optional): the wallet's balance for a given token if available. An additional
+                request will be made if not available. Defaults to None.
+            token_price (Optional[Decimal], optional): the price of the token if available. An additional
+                request will be made if not available. Defaults to None.
 
-            Returns:
-                Decimal: the value of a token's position in USD or BNB
-            """
-            if balance is None:
-                balance = self.get_token_balance(token_address=token_address)
-            if token_price is None:
-                token_price, _ = self.get_token_price(token_address=token_address)
-            value = token_price * balance  # artifact when balance is zero -> 0e-35
-            return Decimal(0) if value < 1e-30 else value
+        Returns:
+            Decimal: the value of a token's position in USD or BNB
+        """
+        if balance is None:
+            balance = self.get_token_balance(token_address=token_address)
+        if token_price is None:
+            token_price, _ = self.get_token_price(token_address=token_address)
+        value = token_price * balance  # artifact when balance is zero -> 0e-35
+        return Decimal(0) if value < 1e-30 else value
+
     def get_token_balance(self, token_address: ChecksumAddress) -> Decimal:
         """The size of the user's position for a given token contract.
 
@@ -117,9 +133,11 @@ class Net():
                 10 ** self.get_token_decimals(token_address=token_address)
             )
         except (ABIFunctionNotFound, ContractLogicError):
-            logger.error(f'Contract {token_address} does not have function "balanceOf"')
+            logger.error(
+                f'Contract {token_address} does not have function "balanceOf"')
             return Decimal(0)
         return balance
+
     def get_token_price(self, token_address: ChecksumAddress) -> Tuple[Decimal, ChecksumAddress]:
         """Return price of the token in BNB/token or USD/token.
 
@@ -135,7 +153,8 @@ class Net():
         """
         token = self.get_token_contract(token_address)
         supported_lps = [
-            self.find_lp_address(token_address=token_address, base_token_address=base_token_address)
+            self.find_lp_address(token_address=token_address,
+                                 base_token_address=base_token_address)
             for base_token_address in self.supported_base_tokens
         ]
         if not [lp for lp in supported_lps if lp is not None]:  # token is not trading yet
@@ -146,6 +165,7 @@ class Net():
             return Decimal(0), base_token_address
         base_token = self.get_token_contract(base_token_address)
         return self.get_token_price_for_lp(token, base_token, ignore_poolsize=True), base_token_address
+
     def get_token_contract(self, token_address: ChecksumAddress) -> Contract:
         """Get a contract instance for a given token address.
 
@@ -158,6 +178,7 @@ class Net():
         with Path("abi/bep20.abi").open("r") as f:
             abi = f.read()
         return self.w3.eth.contract(address=token_address, abi=abi)
+
     def find_lp_address(
         self, token_address: ChecksumAddress, base_token_address: ChecksumAddress
     ) -> Optional[ChecksumAddress]:
@@ -172,15 +193,19 @@ class Net():
         Returns:
             Optional[ChecksumAddress]: the address of the LP if it exists, ``None`` otherwise.
         """
-        cached = self.lp_cache.get((str(token_address), str(base_token_address)))
+        cached = self.lp_cache.get(
+            (str(token_address), str(base_token_address)))
         if cached is not None:
             return cached
-        pair = self.contracts.factory_v2.functions.getPair(token_address, base_token_address).call()
+        pair = self.contracts.factory_v2.functions.getPair(
+            token_address, base_token_address).call()
         if pair == "0x" + 40 * "0":  # not found, don't cache
             return None
         checksum_pair = Web3.toChecksumAddress(pair)
-        self.lp_cache[(str(token_address), str(base_token_address))] = checksum_pair
+        self.lp_cache[(str(token_address), str(
+            base_token_address))] = checksum_pair
         return checksum_pair
+
     def find_biggest_lp(
         self, token: Contract, lps: List[Optional[ChecksumAddress]]
     ) -> Tuple[Optional[ChecksumAddress], int]:
@@ -195,9 +220,11 @@ class Net():
                 - ChecksumAddress: the address of the largest LP
                 - int: the index of the largest LP in the list provided as input
         """
-        lp_balances = [Decimal(token.functions.balanceOf(lp).call()) if lp is not None else Decimal(0) for lp in lps]
+        lp_balances = [Decimal(token.functions.balanceOf(
+            lp).call()) if lp is not None else Decimal(0) for lp in lps]
         argmax = max(range(len(lp_balances)), key=lambda i: lp_balances[i])
         return lps[argmax], argmax
+
     def get_token_price_for_lp(self, token: Contract, base_token: Contract, ignore_poolsize: bool = False) -> Decimal:
         """Return price of the token in BNB/token or USD/token for a given LP defined by its base token.
 
@@ -214,7 +241,8 @@ class Net():
             Decimal: the price of the token in BNB or USD per token, as calculated from a given pair with the given
             base token.
         """
-        lp = self.find_lp_address(token_address=token.address, base_token_address=base_token.address)
+        lp = self.find_lp_address(
+            token_address=token.address, base_token_address=base_token.address)
         if lp is None:
             return Decimal(0)
         base_decimals = self.get_token_decimals(base_token.address)
@@ -235,7 +263,8 @@ class Net():
             return Decimal(0)
 
         token_decimals = self.get_token_decimals(token.address)
-        token_amount = Decimal(token.functions.balanceOf(lp).call()) * Decimal(10 ** (18 - token_decimals))
+        token_amount = Decimal(token.functions.balanceOf(
+            lp).call()) * Decimal(10 ** (18 - token_decimals))
         # normalize to 18 decimals
         try:
             base_per_token = base_amount / token_amount
@@ -252,7 +281,9 @@ class Net():
                 value = base_per_token
             else:
                 value = base_per_token / self.get_bnb_price()  # we convert to BNB
-        return Decimal(0) if value < 1e-30 else value  # artifact with small numbers
+        # artifact with small numbers
+        return Decimal(0) if value < 1e-30 else value
+
     def get_token_decimals(self, token_address: ChecksumAddress) -> int:
         """Get the number of decimals used by the token for human representation.
 
@@ -265,6 +296,7 @@ class Net():
         token_contract = self.get_token_contract(token_address=token_address)
         decimals = token_contract.functions.decimals().call()
         return int(decimals)
+
     def get_bnb_price(self) -> Decimal:
         """Get the price of the native token in USD/BNB.
 
@@ -274,12 +306,16 @@ class Net():
         Returns:
             Decimal: the price of the chain's native token in USD per BNB.
         """
-        lp = self.find_lp_address(token_address=self.addr.busd, base_token_address=self.addr.wbnb)
+        lp = self.find_lp_address(
+            token_address=self.addr.busd, base_token_address=self.addr.wbnb)
         if not lp:
             raise ValueError("No LP found for BNB/BUSD")
-        bnb_amount = Decimal(self.contracts.wbnb.functions.balanceOf(lp).call())
-        busd_amount = Decimal(self.contracts.busd.functions.balanceOf(lp).call())
+        bnb_amount = Decimal(
+            self.contracts.wbnb.functions.balanceOf(lp).call())
+        busd_amount = Decimal(
+            self.contracts.busd.functions.balanceOf(lp).call())
         return busd_amount / bnb_amount
+
     def is_approved(self, token_address: ChecksumAddress) -> bool:
         """Check wether the pancakeswap router is allowed to spend a given token.
 
@@ -292,11 +328,13 @@ class Net():
         if str(token_address) in self.approved:
             return True
         token_contract = self.get_token_contract(token_address=token_address)
-        amount = token_contract.functions.allowance(self.wallet, self.addr.router_v2).call()
+        amount = token_contract.functions.allowance(
+            self.wallet, self.addr.router_v2).call()
         approved = amount >= self.max_approval_check_int
         if approved:
             self.approved.add(str(token_address))
         return approved
+
     def approve(self, token_address: ChecksumAddress, max_approval: Optional[int] = None) -> bool:
         """Set the allowance of the pancakeswap router to spend a given token.
 
@@ -310,8 +348,10 @@ class Net():
         """
         max_approval = self.max_approval_int if not max_approval else max_approval
         token_contract = self.get_token_contract(token_address=token_address)
-        func = token_contract.functions.approve(self.addr.router_v2, max_approval)
-        logger.info(f"Approving {self.get_token_symbol(token_address=token_address)} - {token_address}...")
+        func = token_contract.functions.approve(
+            self.addr.router_v2, max_approval)
+        logger.info(
+            f"Approving {self.get_token_symbol(token_address=token_address)} - {token_address}...")
         gas_limit = Wei(300000)
         tx_params = self.get_tx_params(
             gas=gas_limit,
@@ -320,12 +360,14 @@ class Net():
         tx = self.build_and_send_tx(func, tx_params=tx_params)
         receipt = self.w3.eth.wait_for_transaction_receipt(tx, timeout=6000)
         if receipt["status"] == 0:  # fail
-            logger.error(f'Approval call failed at tx {Web3.toHex(primitive=receipt["transactionHash"])}')
+            logger.error(
+                f'Approval call failed at tx {Web3.toHex(primitive=receipt["transactionHash"])}')
             return False
         self.approved.add(str(token_address))
         time.sleep(3)  # let tx propagate
         logger.success("Approved wallet for trading.")
         return True
+
     def get_token_symbol(self, token_address: ChecksumAddress) -> str:
         """Get the symbol for a given token.
 
@@ -338,6 +380,7 @@ class Net():
         token_contract = self.get_token_contract(token_address=token_address)
         symbol = token_contract.functions.symbol().call()
         return symbol
+
     def get_tx_params(
         self, value: Optional[Wei] = None, gas: Optional[Wei] = None, gas_price: Optional[Wei] = None
     ):
@@ -358,9 +401,10 @@ class Net():
             value = Wei(0)
         if gas is None:
             gas = Wei(100000)
-        #nonce = self.w3.eth.get_transaction_count(self.wallet)
+        # nonce = self.w3.eth.get_transaction_count(self.wallet)
         rpc = "https://bsc-dataseed.binance.org:443"
-        adapter = requests.adapters.HTTPAdapter(pool_connections=20, pool_maxsize=20, max_retries=1)
+        adapter = requests.adapters.HTTPAdapter(
+            pool_connections=20, pool_maxsize=20, max_retries=1)
         session = requests.Session()
         session.mount("http://", adapter)
         session.mount("https://", adapter)
@@ -369,13 +413,16 @@ class Net():
             if None and None
             else None
         )
-        w3_provider = Web3.HTTPProvider(endpoint_uri=rpc, session=session, request_kwargs=auth)
+        w3_provider = Web3.HTTPProvider(
+            endpoint_uri=rpc, session=session, request_kwargs=auth)
         self.w3 = Web3(provider=w3_provider)
         nonce = self.w3.eth.get_transaction_count(self.wallet)
-        params = {"from": self.wallet, "value": value, "gas": gas, "nonce": nonce}
+        params = {"from": self.wallet, "value": value,
+                  "gas": gas, "nonce": nonce}
         if gas_price:
             params["gasPrice"] = Web3.toWei(gas_price, "gwei")
         return params
+
     def buy_tokens(
         self, token_address: ChecksumAddress, amount_bnb: Wei, slippage_percent: Decimal, gas_price: Optional[str]
     ) -> Tuple[bool, Decimal, str]:
@@ -392,7 +439,7 @@ class Net():
                 - bool: wether the buy was successful
                 - Decimal: the amount of tokens received (human-readable, decimal)
                 - str: the transaction hash if transaction was mined, or an error message
-        
+
         balance_bnb = self.w3.eth.get_balance(self.wallet)
         if amount_bnb > balance_bnb - Wei(2000000000000000):  # leave 0.002 BNB for future gas fees
             logger.error("Not enough BNB balance")
@@ -428,7 +475,8 @@ class Net():
             logger.error(f"Price impact too high: {price_impact:.2%}")
             return False, Decimal(0), f"Price impact too high at {price_impact:.2%}"
         '''
-        min_output_tokens = Web3.toWei(slippage_ratio * predicted_out, unit="wei")
+        min_output_tokens = Web3.toWei(
+            slippage_ratio * predicted_out, unit="wei")
         receipt = self.buy_tokens_with_params(
             path=best_path, amount_bnb=amount_bnb, min_output_tokens=min_output_tokens, gas_price=gas_price
         )
@@ -455,7 +503,8 @@ class Net():
                 continue
             if log["args"]["to"] != self.wallet:
                 continue
-            amount_out = Decimal(log["args"]["value"]) / Decimal(10 ** self.get_token_decimals(token_address))
+            amount_out = Decimal(
+                log["args"]["value"]) / Decimal(10 ** self.get_token_decimals(token_address))
             break
         logger.success(f"Buy transaction succeeded at tx {txhash}")
         return True, amount_out, txhash
@@ -476,24 +525,30 @@ class Net():
         Returns:
             Optional[TxReceipt]: a transaction receipt if transaction was mined, ``None`` otherwise.
         """
-        #min_output_tokens *= 0.85
-        #min_output_tokens = int(round(min_output_tokens, 0))
+        # min_output_tokens *= 0.85
+        # min_output_tokens = int(round(min_output_tokens, 0))
         func = self.contracts.router_v2.functions.swapExactETHForTokensSupportingFeeOnTransferTokens(
             min_output_tokens, path, self.wallet, self.deadline(60)
         )
         try:
-            gas_limit = Wei(int(Decimal(func.estimateGas({"from": self.wallet, "value": amount_bnb})) * Decimal(1.5)))
+            gas_limit = Wei(int(Decimal(func.estimateGas(
+                {"from": self.wallet, "value": amount_bnb})) * Decimal(1.5)))
         except Exception as e:
-            logger.error(f"Can't get gas estimate, cancelling transaction: {e}")
+            logger.error(
+                f"Can't get gas estimate, cancelling transaction: {e}")
             with open('logs.txt', 'a') as file:
-                file.write(str(time.time()) + f"\nCan't get gas estimate, cancelling transaction: {e}\n")
+                file.write(
+                    str(time.time()) + f"\nCan't get gas estimate, cancelling transaction: {e}\n")
             return None
         if gas_limit > GAS_LIMIT_FAILSAFE:
-            logger.error("Gas estimate above threshold, cancelling transaction.")
+            logger.error(
+                "Gas estimate above threshold, cancelling transaction.")
             return None
-        params = self.get_tx_params(value=amount_bnb, gas=gas_limit, gas_price=gas_price)
+        params = self.get_tx_params(
+            value=amount_bnb, gas=gas_limit, gas_price=gas_price)
         tx = self.build_and_send_tx(func=func, tx_params=params)
         return self.w3.eth.wait_for_transaction_receipt(tx, timeout=60)
+
     def get_best_swap_path(
         self, token_address: ChecksumAddress, amount_in: Wei, sell: bool
     ) -> Tuple[List[ChecksumAddress], Wei]:
@@ -521,16 +576,19 @@ class Net():
         if sell:
             paths = [[token_address, self.addr.wbnb]]
             for base_token_address in [bt for bt in self.supported_base_tokens if bt != self.addr.wbnb]:
-                paths.append([token_address, base_token_address, self.addr.wbnb])
+                paths.append(
+                    [token_address, base_token_address, self.addr.wbnb])
         else:
             paths = [[self.addr.wbnb, token_address]]
             for base_token_address in [bt for bt in self.supported_base_tokens if bt != self.addr.wbnb]:
-                paths.append([self.addr.wbnb, base_token_address, token_address])
+                paths.append(
+                    [self.addr.wbnb, base_token_address, token_address])
         amounts_out: List[Wei] = []
         valid_paths: List[List[ChecksumAddress]] = []
         for path in paths:
             try:
-                amount_out = self.contracts.router_v2.functions.getAmountsOut(amount_in, path).call()[-1]
+                amount_out = self.contracts.router_v2.functions.getAmountsOut(
+                    amount_in, path).call()[-1]
             except ContractLogicError:  # invalid pair
                 continue
             amounts_out.append(amount_out)
@@ -538,7 +596,8 @@ class Net():
         if not valid_paths:
             for path in paths:
                 try:
-                    amount_out = self.contracts.router_v2.functions.getAmountsOut(amount_in, path).call()[-1]
+                    amount_out = self.contracts.router_v2.functions.getAmountsOut(
+                        amount_in, path).call()[-1]
                 except ContractLogicError:  # invalid pair
                     continue
                 amounts_out.append(amount_out)
@@ -547,6 +606,7 @@ class Net():
                 raise ValueError("No valid pair was found")
         argmax = max(range(len(amounts_out)), key=lambda i: amounts_out[i])
         return valid_paths[argmax], amounts_out[argmax]
+
     def calculate_price_impact(
         self,
         token_address: ChecksumAddress,
@@ -571,21 +631,26 @@ class Net():
         """
         if token_price is None:
             token_price, _ = self.get_token_price(token_address)
-            #token_price = Decimal(float(token_price) * 1.03)
+            # token_price = Decimal(float(token_price) * 1.03)
         if self.price_in_usd:  # we need price in BNB / token
             token_price = token_price / self.get_bnb_price()
-        quote_amount_out = amount_in * token_price if sell else amount_in / token_price  # with "in" token decimals
+        quote_amount_out = amount_in * token_price if sell else amount_in / \
+            token_price  # with "in" token decimals
         if swap_path is None or amount_out is None:
-            swap_path, amount_out = self.get_best_swap_path(token_address, amount_in, sell)  # with "out" token decimals
+            swap_path, amount_out = self.get_best_swap_path(
+                token_address, amount_in, sell)  # with "out" token decimals
         quote_amount_out_normalized = quote_amount_out * Decimal(
             10 ** (18 - self.get_token_decimals(swap_path[0]))
         )  # normalize to 18 decimals
         amount_out_normalized = Decimal(amount_out) * Decimal(
             10 ** (18 - self.get_token_decimals(swap_path[-1]))
         )  # normalize to 18 decimals
-        slippage = (quote_amount_out_normalized - amount_out_normalized) / quote_amount_out_normalized
-        lpFee = Decimal("0.0025") if len(swap_path) == 2 else Decimal("0.0049375")  # 1 - (1-0.25%)^2
+        slippage = (quote_amount_out_normalized -
+                    amount_out_normalized) / quote_amount_out_normalized
+        lpFee = Decimal("0.0025") if len(swap_path) == 2 else Decimal(
+            "0.0049375")  # 1 - (1-0.25%)^2
         return slippage - lpFee
+
     def get_token_balance_wei(self, token_address: ChecksumAddress) -> Wei:
         """The size of the user's position for a given token contract, in Wei units.
 
@@ -599,8 +664,10 @@ class Net():
         try:
             return Wei(token_contract.functions.balanceOf(self.wallet).call())
         except (ABIFunctionNotFound, ContractLogicError):
-            logger.error(f'Contract {token_address} does not have function "balanceOf"')
+            logger.error(
+                f'Contract {token_address} does not have function "balanceOf"')
         return Wei(0)
+
     def sell_tokens(
         self, token_address: ChecksumAddress, amount_tokens: Wei, slippage_percent: Decimal, gas_price: Optional[str]
     ) -> Tuple[bool, Decimal, str]:
@@ -621,7 +688,8 @@ class Net():
         slippage_ratio = (Decimal(100) - slippage_percent) / Decimal(100)
         final_gas_price = self.w3.eth.gas_price
         if gas_price is not None and gas_price.startswith("+"):
-            offset = Web3.toWei(Decimal(gas_price) * Decimal(10**9), unit="wei")
+            offset = Web3.toWei(Decimal(gas_price) *
+                                Decimal(10**9), unit="wei")
             final_gas_price = Wei(final_gas_price + offset)
         elif gas_price is not None:
             final_gas_price = Web3.toWei(gas_price, unit="wei")
@@ -649,13 +717,15 @@ class Net():
             logger.error(f"Sell transaction failed at tx {txhash}")
             return False, Decimal(0), txhash
         amount_out = Decimal(0)
-        logs = self.contracts.wbnb.events.Withdrawal().processReceipt(receipt, errors=DISCARD)
+        logs = self.contracts.wbnb.events.Withdrawal(
+        ).processReceipt(receipt, errors=DISCARD)
         for log in reversed(logs):  # only get last withdrawal call
             if log["address"] != self.addr.wbnb:
                 continue
             if log["args"]["src"] != self.addr.router_v2:
                 continue
-            amount_out = Decimal(Web3.fromWei(log["args"]["wad"], unit="ether"))
+            amount_out = Decimal(Web3.fromWei(
+                log["args"]["wad"], unit="ether"))
             break
         logger.success(f"Sell transaction succeeded at tx {txhash}")
         return True, amount_out, txhash
@@ -680,16 +750,21 @@ class Net():
             amount_tokens, min_output_bnb, path, self.wallet, self.deadline(60)
         )
         try:
-            gas_limit = Wei(int(Decimal(func.estimateGas({"from": self.wallet, "value": Wei(0)})) * Decimal(1.2)))
+            gas_limit = Wei(int(Decimal(func.estimateGas(
+                {"from": self.wallet, "value": Wei(0)})) * Decimal(1.2)))
         except Exception as e:
-            logger.error(f"Can't get gas estimate, cancelling transaction: {e}")
+            logger.error(
+                f"Can't get gas estimate, cancelling transaction: {e}")
             return None
         if gas_limit > GAS_LIMIT_FAILSAFE:
-            logger.error("Gas estimate above threshold, cancelling transaction.")
+            logger.error(
+                "Gas estimate above threshold, cancelling transaction.")
             return None
-        params = self.get_tx_params(value=Wei(0), gas=gas_limit, gas_price=gas_price)
+        params = self.get_tx_params(
+            value=Wei(0), gas=gas_limit, gas_price=gas_price)
         tx = self.build_and_send_tx(func=func, tx_params=params)
         return self.w3.eth.wait_for_transaction_receipt(tx, timeout=60)
+
     def deadline(self, seconds: int = 60) -> int:
         """Get the unix timestamp for a point in time x seconds in the future.
 
@@ -700,6 +775,7 @@ class Net():
             int: a unix timestamp x seconds in the future
         """
         return int(time.time()) + seconds
+
     def build_and_send_tx(self, func: ContractFunction, tx_params: Optional[TxParams] = None) -> HexBytes:
         """Build a transaction from a contract's function call instance and transaction parameters, then submit it.
 
@@ -713,5 +789,6 @@ class Net():
         if not tx_params:
             tx_params = self.get_tx_params()
         transaction = func.buildTransaction(tx_params)
-        signed_tx = self.w3.eth.account.sign_transaction(transaction, private_key=self.private_key)
+        signed_tx = self.w3.eth.account.sign_transaction(
+            transaction, private_key=self.private_key)
         return self.w3.eth.send_raw_transaction(signed_tx.rawTransaction)

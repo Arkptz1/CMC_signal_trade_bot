@@ -24,8 +24,6 @@ print("Sucess Started")
 Lock = threading.Lock()
 
 
-        
-
 @client.on(events.NewMessage(chats=channels))
 async def my_event_handler(event):
     if event.message:
@@ -43,20 +41,21 @@ async def my_event_handler(event):
                 global bot
                 try:
                     st = 12
-                    if liq != None: 
+                    if liq != None:
                         if liq < 100:
                             st = 25
                         elif liq < 200:
                             st = 20
-                    buy_price = float(buy_sell(int(slip_buy) + st, name).buy(cont))
+                    buy_price = float(
+                        buy_sell(int(slip_buy) + st, name).buy(cont))
                     print(time.time() - st)
                     global workers
-                    thr = threading.Thread(target=parse_cmc.go_token, args=[cont, slip_sell, name, variables.sender_address])
+                    thr = threading.Thread(target=parse_cmc.go_token, args=[
+                                           cont, slip_sell, name, variables.sender_address])
                     thr.start()
                 except:
                     print(traceback.format_exc())
 
-                            
 
 while True:
     try:

@@ -14,8 +14,10 @@ import traceback
 import datetime
 import variables
 from network import Net
+
+
 class buy_sell():
-    def __init__(self, slippage, name, amount = variables.amount) -> None:
+    def __init__(self, slippage, name, amount=variables.amount) -> None:
         self.slippage = slippage
         self.gas_price = Wei(variables.gas_price)
         self.gas_price_2 = Wei("5")
@@ -41,38 +43,46 @@ class buy_sell():
             logger.error(f"Transaction failed: {reason_or_link}")
             if variables.bot_work:
                 try:
-                    bot.send_message(id, f"{self.symbol}\nTransaction failed: {reason_or_link}")
+                    bot.send_message(
+                        id, f"{self.symbol}\nTransaction failed: {reason_or_link}")
                 except:
                     tr = traceback.format_exc()
                     with open("logs.txt", "a") as f:
-                        f.write(str(datetime.datetime.now()) + " " + str(tr) + "\n\n\n")
+                        f.write(str(datetime.datetime.now()) +
+                                " " + str(tr) + "\n\n\n")
             return
-        effective_price = self.get_human_amount(contr,"buy") / tokens_out  # in BNB per token
+        effective_price = self.get_human_amount(
+            contr, "buy") / tokens_out  # in BNB per token
         if self.price_in_usd:  # we need to convert to USD according to settings
             effective_price = effective_price * self.net.get_bnb_price()
             effective_buy_price = str(effective_price)
+
         def format_token_amount(amount: Decimal) -> str:
             if amount >= 100:
                 return f"{amount:,.1f}"
             return f"{amount:.4g}"
         logger.success(
-            f"Buy transaction succeeded. Received {format_token_amount(tokens_out)} {self.symbol}. " # символ как получить?
+            # символ как получить?
+            f"Buy transaction succeeded. Received {format_token_amount(tokens_out)} {self.symbol}. "
             + f"Effective price (after tax) {self.symbol_usd}{effective_price:.4g} {self.symbol_bnb} / token"
         )
         if variables.bot_work:
             try:
-                text= f"✅ Buy transaction succeeded.\n Received {format_token_amount(tokens_out)} {self.symbol} at ".replace(".","\.")+ f'tx [{txhash_or_error[:8]}\.\.\.](https://bscscan.com/tx/{txhash_or_error})\n'+ f"Effective price \(after tax\) {effective_price:.4g} BNB / token".replace(".", "\.").replace("-", "\-"),
+                text = f"✅ Buy transaction succeeded.\n Received {format_token_amount(tokens_out)} {self.symbol} at ".replace(
+                    ".", "\.") + f'tx [{txhash_or_error[:8]}\.\.\.](https://bscscan.com/tx/{txhash_or_error})\n' + f"Effective price \(after tax\) {effective_price:.4g} BNB / token".replace(".", "\.").replace("-", "\-"),
                 bot.send_message(id, text, parse_mode='MarkdownV2')
             except:
                 tr = traceback.format_exc()
                 with open("logs.txt", "a") as f:
-                    f.write(str(datetime.datetime.now()) +" "+ str(tr) + "\n\n\n")
+                    f.write(str(datetime.datetime.now()) +
+                            " " + str(tr) + "\n\n\n")
         if not self.net.is_approved(token_address=contr):
             # pre-approve for later sell
-            logger.info(f"Approving {self.symbol} for trading on PancakeSwap.") # опять же символ
+            # опять же символ
+            logger.info(f"Approving {self.symbol} for trading on PancakeSwap.")
             if variables.bot_work:
                 try:
-                    text=f"Approving {self.symbol} for trading on PancakeSwap..."
+                    text = f"Approving {self.symbol} for trading on PancakeSwap..."
                     bot.send_message(
                         id, text=text)
                     res = self.net.approve(token_address=contr)
@@ -82,13 +92,16 @@ class buy_sell():
                 except:
                     tr = traceback.format_exc()
                     with open("logs.txt", "a") as f:
-                        f.write(str(datetime.datetime.now()) + " " + str(tr) + "\n\n\n")
+                        f.write(str(datetime.datetime.now()) +
+                                " " + str(tr) + "\n\n\n")
             if not self.net.is_approved(token_address=contr):
                 # pre-approve for later sell
-                logger.info(f"Approving {self.symbol} for trading on PancakeSwap.") # опять же символ
+                # опять же символ
+                logger.info(
+                    f"Approving {self.symbol} for trading on PancakeSwap.")
                 if variables.bot_work:
                     try:
-                        text=f"Approving {self.symbol} for trading on PancakeSwap..."
+                        text = f"Approving {self.symbol} for trading on PancakeSwap..."
                         bot.send_message(
                             id, text=text)
                         res = self.net.approve(token_address=contr)
@@ -98,7 +111,8 @@ class buy_sell():
                     except:
                         tr = traceback.format_exc()
                         with open("logs.txt", "a") as f:
-                            f.write(str(datetime.datetime.now()) + " " + str(tr) + "\n\n\n")
+                            f.write(str(datetime.datetime.now()) +
+                                    " " + str(tr) + "\n\n\n")
         return effective_price
 
     def get_human_amount(self, contr, typ) -> Decimal:
@@ -106,15 +120,17 @@ class buy_sell():
 
         bsc = "https://bsc-dataseed.binance.org/"
         web3 = Web3(Web3.HTTPProvider(bsc))
-        cc = web3.eth.contract(address=web3.toChecksumAddress(contr), abi = sellAbi)
+        cc = web3.eth.contract(
+            address=web3.toChecksumAddress(contr), abi=sellAbi)
         decimals = float(cc.functions.decimals().call())
         decimals = decimals if typ == "sell" else 18
         return Decimal(self.amount) / Decimal(10**decimals)
+
     def sell(self, contr):
         if variables.bot_work:
             id = variables.id_chat
             bot = variables.bot
-        #balance_before = self.net.get_token_balance_wei(token_address=contr)
+        # balance_before = self.net.get_token_balance_wei(token_address=contr)
         res, bnb_out, txhash_or_error = self.net.sell_tokens(
             contr,
             amount_tokens=self.amount,
@@ -127,19 +143,20 @@ class buy_sell():
                 reason_or_link = f'https://bscscan.com/tx/{txhash_or_error}'
             else:
                 reason_or_link = txhash_or_error
-            text=f"{self.symbol}\n⛔️ Transaction failed: {reason_or_link}"
+            text = f"{self.symbol}\n⛔️ Transaction failed: {reason_or_link}"
             if variables.bot_work:
                 try:
                     bot.send_message(id, text)
                 except:
                     tr = traceback.format_exc()
                     with open("logs.txt", "a") as f:
-                        f.write(str(datetime.datetime.now())+ " "+ str(tr) + "\n\n\n")
+                        f.write(str(datetime.datetime.now()) +
+                                " " + str(tr) + "\n\n\n")
             res, bnb_out, txhash_or_error = self.net.sell_tokens(
-            contr,
-            amount_tokens=self.amount,
-            slippage_percent=self.slippage,
-            gas_price=self.gas_price_2,
+                contr,
+                amount_tokens=self.amount,
+                slippage_percent=self.slippage,
+                gas_price=self.gas_price_2,
             )
             if not res:
                 logger.error(f"Transaction failed: {txhash_or_error}")
@@ -147,14 +164,15 @@ class buy_sell():
                     reason_or_link = f'https://bscscan.com/tx/{txhash_or_error}'
                 else:
                     reason_or_link = txhash_or_error
-                text=f"{self.symbol}\n⛔️ Transaction failed: {reason_or_link}"
+                text = f"{self.symbol}\n⛔️ Transaction failed: {reason_or_link}"
                 if variables.bot_work:
                     try:
                         bot.send_message(id, text)
                     except:
                         tr = traceback.format_exc()
                         with open("logs.txt", "a") as f:
-                            f.write(str(datetime.datetime.now()) + " "  + str(tr) + "\n\n\n")
+                            f.write(str(datetime.datetime.now()) +
+                                    " " + str(tr) + "\n\n\n")
             '''  # will trigger deletion of the object
             return
         effective_price = bnb_out / self.get_human_amount(contr, "sell")  # in BNB
@@ -169,7 +187,8 @@ class buy_sell():
         else:
             if variables.bot_work():
                 try:
-                    effective_price = bnb_out / self.get_human_amount(contr, "sell")  # in BNB
+                    effective_price = bnb_out / \
+                        self.get_human_amount(contr, "sell")  # in BNB
                     if self.price_in_usd:  # we need to convert to USD according to settings
                         effective_price = effective_price * self.net.get_bnb_price()
                     logger.success(
@@ -177,11 +196,13 @@ class buy_sell():
                         + f"Effective price (after tax) {effective_price:.4g} {self.symbol_bnb} / token"
                     )
                     usd_out = self.net.get_bnb_price() * bnb_out
-                    text= f"✅ Sell transaction succeeded. Received {bnb_out:.3g} BNB \(${usd_out:.2f}\) at ".replace('.', '\.')+ f'tx [{txhash_or_error[:8]}\.\.\.](https://bscscan.com/tx/{txhash_or_error})\n' + f"Effective price \(after tax\) {effective_price:.4g} BNB / token\n".replace('.', "\.").replace('-', "\-")
-                    bot.send_message(id, text, parse_mode='MarkdownV2')         
+                    text = f"✅ Sell transaction succeeded. Received {bnb_out:.3g} BNB \(${usd_out:.2f}\) at ".replace(
+                        '.', '\.') + f'tx [{txhash_or_error[:8]}\.\.\.](https://bscscan.com/tx/{txhash_or_error})\n' + f"Effective price \(after tax\) {effective_price:.4g} BNB / token\n".replace('.', "\.").replace('-', "\-")
+                    bot.send_message(id, text, parse_mode='MarkdownV2')
                 except:
                     tr = traceback.format_exc()
                     with open("logs.txt", "a") as f:
-                        f.write(str(datetime.datetime.now()) + " " + str(tr) +"\n\n\n")
-      
+                        f.write(str(datetime.datetime.now()) +
+                                " " + str(tr) + "\n\n\n")
+
       # will trigger deletion of the object
